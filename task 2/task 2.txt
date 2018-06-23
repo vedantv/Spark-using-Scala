@@ -1,0 +1,44 @@
+Make all combinations from given dates such that it will form from-to dates combination pairs and show the corresponding union set of users.
+
+/*STARTING TASK 3*/
+// For implicit conversions like converting RDDs to DataFrames
+
+var df = spark.read.format("csv").option("header","true").load("/FileStore/tables/DATABASE2.csv")
+
+df = df.groupBy("Date_Stamp_ist").agg(collect_set("Users").alias("users_list"))
+
+df = df.withColumn("ulist1", concat_ws(",", $"users_list"))
+val df2 = df.select(df("date_stamp_ist").alias("date_stamp"),df("ulist1").alias("ulist2"))
+var df3 = df.crossJoin(df2)
+df3 = df3.filter(df3("Date_Stamp_ist")=!=df3("date_stamp"))
+df3.saveAsTextFile("/users/data/hobbit-out1")
+df3.show
+
+
+
+df3 = df3.withColumn("concat", concat(($"ulist1"),lit(","),($"ulist2")))
+val colsToRemove = Seq("users_list", "ulist1", "ulist2") //removing unnecessary columns
+
+df3 = df3.select(df3.columns .filter(colName => !colsToRemove.contains(colName)) .map(colName => new Column(colName)): _*) 
+
+val w = df3.select($"concat").as[String].collect
+var v = w.map(_.toSet).map(text => text - ',').map(_.toString).map(_.substring(3))
+var z = v.toList.toDF("Final_result")
+z = z.withColumn("id",row_number.over(Window.orderBy(lit(1))))
+df3 = df3.withColumn("id",row_number.over(Window.orderBy(lit(1))))
+df3 = df3.join(z,"id")
+df3 = df3.drop("concat")
+df3 = df3.drop("id")
+df3.show
+
+
+
+df3 = df3.sort(asc("Date_stamp_ist"))
+df3 = df3.filter($"Date_stamp_ist" <= $"date_stamp")
+//function to count
+def Func: (String => Integer) = { s => s.split(",").size}
+val countingudf = udf(Func)
+df3 = df3.withColumn("count",countingudf($"Final_result"))
+df3.show
+//display(df3)
+/*ENDING TASK 3*/
