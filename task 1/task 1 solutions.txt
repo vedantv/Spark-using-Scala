@@ -1,0 +1,27 @@
+#task 1
+
+val df = spark.read.format("csv").option("header","true").load("/FileStore/tables/export__1_-d35a2.csv")
+
+//df.groupBy("distinct_id").agg(collect_set("platform").alias("platforms")).show
+
+//df.groupBy("distinct_id").agg(collect_set("manufacturer").alias("manufacturer")).show
+
+//df.select(df("media_source"),when($"media_source"==="Organic","Organic").otherwise("Inorganic").alias("status")).show
+
+/*val df1 = df.filter(date_format(df("first_app_launch_date"),"dd.MM.yyyy")===date_format(df("date_stamp_ist"),"dd.MM.yyyy")).groupBy(date_format(df("first_app_launch_date"),"dd.MM.yyyy").alias("first_app_launch_date")).agg(collect_set("distinct_id").alias("new users"))
+df1.show */
+
+//df.select(df("distinct_id"),df("user_type"),when(($"user_type" =!= "null" && $"user_type" =!= "Guest"),"Registered").otherwise("Unregistered").alias("new_user_type")).show
+
+//val df2 = df.select(sum(when(( $"app_version"==="47" || $"app_version"==="1.2.16" || $"app_version"==="1.2.21" && $"event"==="video watched" && df("duration").between(0,36000) ),$"duration").otherwise(when($"app_version"=!="47" || $"app_version"=!="1.2.16" || $"app_version"=!="1.2.21" && $"event"==="video watched" && df("duration_seconds").between(0,36000),$"duration_seconds"))).alias("Duration_watched_seconds"))
+
+
+//df2.select(when($"Duration_watched_seconds"/60>=30,"Y").otherwise("N").alias("DAILY_POWER_USER")).show
+
+//df2.select(when(($"Duration_watched_seconds"/60)>=30 && ($"Duration_watched_seconds"/60)<40,">=30mins").when(($"Duration_watched_seconds"/60)>=40 && ($"Duration_watched_seconds"/60)<50,">=40mins").when(($"Duration_watched_seconds"/60)>=50 && ($"Duration_watched_seconds"/60)<80,">=50mins").when(($"Duration_watched_seconds"/60)>=80,">=80mins").otherwise("N").alias("DAILY_POWER_USER_FLAG")).show
+
+//df.select(countDistinct(when(df("event").isin("App Launched", "App Opened", "App Access"),df("distinct_id"))).alias("NUM_VISITORS")).show
+
+//df.select(countDistinct(when($"event"==="mediaReady",df("distinct_id"))).alias("NUM_VIEWERS")).show
+
+//df.select(countDistinct(when(df("event").isin("App Install"),df("distinct_id"))).alias("NUM_INSTALLS")).show
