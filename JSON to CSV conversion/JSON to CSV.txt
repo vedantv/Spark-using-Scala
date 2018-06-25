@@ -1,0 +1,18 @@
+#JSON to CSV conversion
+
+import org.apache.spark.sql.functions.explode
+var mdf = spark.read.option("multiline", "true").json("/FileStore/tables/tables_json_data.json")
+
+mdf = mdf.withColumn("glossary_title",$"glossary.title")
+.withColumn("Glossdiv_title",$"glossary.GlossDiv.title")
+.withColumn("GlossEntry_id",$"glossary.GlossDiv.GlossList.GlossEntry.ID")
+.withColumn("GlossEntry_sortAs",$"glossary.GlossDiv.GlossList.GlossEntry.sortAs")
+.withColumn("GlossEntry_GlossTerm",$"glossary.GlossDiv.GlossList.GlossEntry.Glossterm")
+.withColumn("GlossEntry_Acronym",$"glossary.GlossDiv.GlossList.GlossEntry.Acronym")
+.withColumn("GlossEntry_abbrev",$"glossary.GlossDiv.GlossList.GlossEntry.abbrev")
+.withColumn("GlossEntry_def_para",$"glossary.GlossDiv.GlossList.GlossEntry.GlossDef.para")
+.withColumn("GlossEntry_def_GlossSeeAlso",explode($"glossary.GlossDiv.GlossList.GlossEntry.GlossDef.GlossSeeAlso"))
+.withColumn("GlossEntry_glossSee",$"glossary.GlossDiv.GlossList.GlossEntry.GlossSee")
+mdf = mdf.drop("glossary")
+
+display(mdf)
