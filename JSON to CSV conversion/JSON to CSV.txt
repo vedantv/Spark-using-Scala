@@ -1,8 +1,10 @@
-#JSON to CSV conversion
+#Multiline JSON to CSV conversion
 
 import org.apache.spark.sql.functions.explode
+//creating variable dataframe
 var mdf = spark.read.option("multiline", "true").json("/FileStore/tables/tables_json_data.json")
 
+//making new columns according to all keys
 mdf = mdf.withColumn("glossary_title",$"glossary.title")
 .withColumn("Glossdiv_title",$"glossary.GlossDiv.title")
 .withColumn("GlossEntry_id",$"glossary.GlossDiv.GlossList.GlossEntry.ID")
@@ -13,6 +15,6 @@ mdf = mdf.withColumn("glossary_title",$"glossary.title")
 .withColumn("GlossEntry_def_para",$"glossary.GlossDiv.GlossList.GlossEntry.GlossDef.para")
 .withColumn("GlossEntry_def_GlossSeeAlso",explode($"glossary.GlossDiv.GlossList.GlossEntry.GlossDef.GlossSeeAlso"))
 .withColumn("GlossEntry_glossSee",$"glossary.GlossDiv.GlossList.GlossEntry.GlossSee")
-mdf = mdf.drop("glossary")
+mdf = mdf.drop("glossary") //dropped the key which consisted the whole json structure as value
 
 display(mdf)
