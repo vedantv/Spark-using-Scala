@@ -1,0 +1,64 @@
+#Churn Data Analysis
+
+var dfr = spark.read.format("csv").option("header","true").option("ignoreLeadingWhiteSpace","true").load("/FileStore/tables/churn.csv")//data read
+//display(dfr)
+val numCases = dfr.count() //total cases counted
+dfr.select(dfr("churned")).show
+
+val numChurned = dfr.filter($"churned" === "True.").count() //number of churned customers counted
+val numUnchurned = numCases - numChurned //number of unchurned customers evaluated
+dfr.repartition(1).write.mode(SaveMode.Append).parquet("/FileStore/tables/churn.parquet") //changed to parquet format
+
+display(spark.sql("CREATE TEMPORARY TABLE temp_idsdata USING parquet OPTIONS ( path \"/FileStore/tables/churn.parquet\")"))
+
+display(spark.sql("SELECT state, count(*) as statewise_churn FROM temp_idsdata where churned= 'True.' group by state"))
+
+//StringIndexing done on churned column and transform into new dataframe called indexer1
+import org.apache.spark.ml.feature.StringIndexer
+ val indexer1= new StringIndexer()
+.setInputCol("churned")
+.setOutputCol("churnedIndex")
+.fit(dfr)
+.transform(dfr)
+display(indexer1)
+
+
+import org.apache.spark.ml.feature.VectorAssembler
+dfr = dfr.withColumn("account_length", dfr("account_length").cast(IntegerType))
+.withColumn("total_day_calls", dfr("total_day_calls").cast(IntegerType))
+.withColumn("total_eve_calls", dfr("total_eve_calls").cast(IntegerType))
+.withColumn("total_night_calls", dfr("total_night_calls").cast(IntegerType))
+.withColumn("total_intl_calls", dfr("total_intl_calls").cast(IntegerType))
+.withColumn("number_customer_service_calls", dfr("number_customer_service_calls").cast(IntegerType))
+    
+dfr.select(dfr("account_length"))
+val vecAssembler = new VectorAssembler()
+.setInputCols(Array("account_length", "total_day_calls", "total_eve_calls", "total_night_calls", "total_intl_calls", "number_customer_service_calls"))
+.setOutputCol("features")
+
+
+import org.apache.spark.ml.classification.{GBTClassificationModel, GBTClassifier}
+val gbt = new GBTClassifier()
+  .setLabelCol("churnedIndex")
+  .setFeaturesCol("features")
+
+
+
+import org.apache.spark.ml.Pipeline
+val pipelineModel = new Pipeline()
+  .setStages(Array(vecAssembler,gbt))
+  .fit(indexer1)
+
+
+
+val predictionsAndLabelsDF = pipelineModel.transform(indexer1)
+val confusionMatrix = predictionsAndLabelsDF.select("churnedIndex", "prediction")
+
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+
+val evaluator = new MulticlassClassificationEvaluator()
+  .setLabelCol("churnedIndex")
+  .setPredictionCol("prediction")
+  .setMetricName("accuracy")
+val accuracy = evaluator.evaluate(confusionMatrix)
+println(s"Test Error = ${1.0 - accuracy}")
